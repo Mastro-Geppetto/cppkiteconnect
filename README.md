@@ -14,7 +14,7 @@ Licensed under the MIT License.
 - **GCC 4.8.1 or Visual Studio 2017 / 2015 update 3 (on windows)**: c++11 compliant compiler.
 ### Dependent Libraries
 - **fmt**   : [A modern formatting library](https://github.com/fmtlib/fmt/).
-- **Boost** : RegRx (csv parsing) & Logging ( i have used 1.67 but a older version should work ).
+- **Boost** : boost-regex (csv parsing) & boost-log Logging ( i have used 1.67 but a older version should work ).
 I plan to remove boost & fmt for [spdlog](https://github.com/gabime/spdlog) and [fast-cpp-csv-parser](https://github.com/ben-strasser/fast-cpp-csv-parser).
 - **CPR**   : [C++ Requests](https://github.com/whoshuu/cpr/).
 - **nlohmann-json** : [C++11 headers only json parser](https://nlohmann.github.io/json/).
