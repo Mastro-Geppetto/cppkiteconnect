@@ -28,6 +28,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <map>
 #include <functional>
 #include <algorithm>
 
@@ -52,6 +53,8 @@ namespace util
   template <typename F, typename... T> Defer<F, T...> defer(F &&f, T &&... t) {
     return Defer<F, T...>(std::forward<F>(f), std::forward<T>(t)...);
   }
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // date UTC format ("2018-11-26T09:15:00+0530") to time struct
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
   #if !OPENSSL_1_1_API
@@ -160,22 +163,22 @@ namespace util
   };
   
   template<typename VALUE>
-  void addIfNotNull( std::map<std::string,std::string> &map, std::string key, VALUE value )
+  void addIfNotNull( std::multimap<std::string,std::string> &map, std::string key, VALUE value )
   {
       if ( has_empty<VALUE>::value )
       {
         if ( !value.empty() )
         {
-            map.insert(key, value);
+            map.emplace(key, value);
         }
       }
       else if ( value != static_cast<VALUE>(0) )
       {
-        map.insert( key, std::to_string(value) );
+        map.emplace( key, std::to_string(value) );
       }
   }
+  
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
   /*!
   @brief
   */
@@ -220,4 +223,5 @@ namespace util
           return result;
       }
   } //csvParse
+  
 } // util

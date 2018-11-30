@@ -213,7 +213,7 @@ namespace kite
 
                 To place order
                 std::string route = "order.place";
-                std::map < std::string, std::string> details{ 
+                std::multimap < std::string, std::string> details{ 
                     {"variety", kite::VARIETY_REGULAR},
                     {"tradingsymbol", "INFY"},
                     {"exchange",            kite::EXCHANGE_NSE},
@@ -401,7 +401,7 @@ namespace kite
             }
             
             // post
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param,"api_key",this->api_key);
             util::addIfNotNull(param,"request_token",requestToken);
             util::addIfNotNull(param,"checksum",std::string( *checksum, length ));
@@ -427,7 +427,7 @@ namespace kite
               result["status"] = "error";
               return result;
             }
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param,"api_key",this->api_key);
             util::addIfNotNull(param,"access_token", accessToken.empty() ? this->access_token : accessToken );
             
@@ -452,7 +452,7 @@ namespace kite
               return result;
             }
             
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param,"api_key",this->api_key);
             util::addIfNotNull(param,"refresh_token", refreshToken);
             
@@ -489,7 +489,7 @@ namespace kite
             }
             
             // post
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param,"api_key", this->api_key);
             util::addIfNotNull(param,"refresh_token", requestToken);
             util::addIfNotNull(param,"checksum",std::string( *checksum, length ));
@@ -514,7 +514,7 @@ namespace kite
               return result;
             }
             
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             _GET("user.profile",param,result);
             return result;
         }
@@ -535,7 +535,7 @@ namespace kite
               return result;
             }
             
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             _GET("user.margins",param,result);
             return result;
         }
@@ -557,7 +557,7 @@ namespace kite
               return result;
             }
             
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param, "segment", segment );
             _GET("user.segment_margins",param,result);
             return result;
@@ -619,7 +619,7 @@ namespace kite
               return result;
             }
             
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param, "exchange", Exchange);
             util::addIfNotNull(param, "tradingsymbol", TradingSymbol);
             util::addIfNotNull(param, "transaction_type", TransactionType);
@@ -689,7 +689,7 @@ namespace kite
                 throw InputException(fmt::format(fmt("Invalid variety. It should be: \"{:s}\""), Product));
             }
             
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param, "order_id", OrderId);
             util::addIfNotNull(param, "parent_order_id", ParentOrderId);
             util::addIfNotNull(param, "trigger_price", TriggerPrice);
@@ -740,7 +740,7 @@ namespace kite
               return result;
             }
 
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             util::addIfNotNull(param, "order_id", OrderId);
             util::addIfNotNull(param, "parent_order_id", ParentOrderId);
             util::addIfNotNull(param, "variety", Variety);
@@ -765,13 +765,14 @@ namespace kite
               return result;
             }
 
-            std::map<std::string, std::string> param;            
+            std::multimap<std::string, std::string> param;            
             _GET("orders",param,result);
             return result;
         }
         
         /*!
         @brief    Gets the collection of orders from the orderbook.
+        @param orderId Unique order id
         @return Json response in the form of nested string dictionary.
                         error: { 'status' : 'error'  }
         */
@@ -786,12 +787,314 @@ namespace kite
               return result;
             }
 
-            std::map<std::string, std::string> param;
+            std::multimap<std::string, std::string> param;
             param["order_id"] = orderId;
             _GET("orders",param,result);
             return result;
         }
         
+        /*!
+        @brief    Retreive the list of trades executed (all or ones under a particular order).
+                      An order can be executed in tranches based on market conditions.
+                      These trades are individually recorded under an order.
+        @param orderId is the ID of the order (optional) whose trades are to be retrieved.
+                      If no `OrderId` is specified, all trades for the day are returned.
+        @return Json response in the form of nested string dictionary (CSV). List of trades of given order.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getOrderTrades( std::string orderId = "" )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() )
+            {
+              result["status"] = "error";
+              return result;
+            }
+
+            std::multimap<std::string, std::string> param;
+            if ( ! orderId.empty() )
+            {
+                param["order_id"] = orderId;
+                _GET("orders.trades",param,result);
+                return result;
+            }
+            
+            _GET("trades",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve the list of positions.
+        @return Json response in the form of nested string dictionary. Day and net positions.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getPositions( )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() )
+            {
+              result["status"] = "error";
+              return result;
+            }
+
+            std::multimap<std::string, std::string> param;
+            _GET("portfolio.positions",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve the list of equity holdings.
+        @return Json response in the form of nested string dictionary. List of holdings.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getHoldings( )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() )
+            {
+              result["status"] = "error";
+              return result;
+            }
+
+            std::multimap<std::string, std::string> param;
+            _GET("portfolio.holdings",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Modify an open position's product type.
+        @param exchange           Name of the exchange
+        @param tradingSymbol    Tradingsymbol of the instrument
+        @param transactionType  BUY or SELL
+        @param positionType       overnight or day
+        @param quantity             Quantity to convert
+        @param oldProduct          Existing margin product of the position
+        @param newProduct         Margin product to convert to
+        @return Json response in the form of nested string dictionary.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& convertPosition( 
+            std::string exchange,
+            std::string tradingSymbol,
+            std::string transactionType,
+            std::string positionType,
+            int quantity,
+            std::string oldProduct,
+            std::string newProduct
+        )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() )
+            {
+              result["status"] = "error";
+              return result;
+            }
+
+            std::multimap<std::string, std::string> param;
+            util::addIfNotNull(param, "exchange", exchange);
+            util::addIfNotNull(param, "tradingsymbol", tradingSymbol);
+            util::addIfNotNull(param, "transaction_type", transactionType);
+            util::addIfNotNull(param, "position_type", positionType);
+            util::addIfNotNull(param, "quantity", quantity);
+            util::addIfNotNull(param, "old_product", oldProduct);
+            util::addIfNotNull(param, "new_product", newProduct);
+            _PUT("portfolio.positions.modify",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve the list of market instruments available to trade.
+                      Note that the results could be large, several hundred KBs in size,
+                      with tens of thousands of entries in the list
+        @param exchange           Name of the exchange
+        @return Json response in the form of nested string dictionary.List of instruments.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getInstruments( std::string exchange = "" )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() )
+            {
+              result["status"] = "error";
+              return result;
+            }
+
+            std::multimap<std::string, std::string> param;
+            if( exchange.empty() )
+            {
+                _GET("market.instruments.all",param,result);
+            }
+            else
+            {
+                util::addIfNotNull(param, "exchange", exchange);
+                _GET("market.instruments",param,result);
+            }
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve quote and market depth of upto 200 instruments
+        @param instrumentId  Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL
+                      (eg: NSE:INFY) or InstrumentToken (eg: 408065)
+        @return Json response in the form of nested string dictionary.All Quote objects with keys as in InstrumentId.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getQuote( std::vector<std::string> instrumentId )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() || instrumentId.empty() || instrumentId.size() > 200 )
+            {
+              result["status"] = "error";
+              return result;
+            }
+            
+            std::multimap<std::string, std::string> param;
+            for ( auto &i : instrumentId )
+            {
+                util::addIfNotNull( param, "i", i );
+            }
+            _GET("market.quote",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve LTP and OHLC of upto 200 instruments
+        @param instrumentId  Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL
+                      (eg: NSE:INFY) or InstrumentToken (eg: 408065)
+        @return Json response in the form of nested string dictionary.All Quote objects with keys as in InstrumentId.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getOHLC( std::vector<std::string> instrumentId )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() || instrumentId.empty() || instrumentId.size() > 200 )
+            {
+              result["status"] = "error";
+              return result;
+            }
+            
+            std::multimap<std::string, std::string> param;
+            for ( auto &i : instrumentId )
+            {
+                util::addIfNotNull( param, "i", i );
+            }
+            
+            _GET("market.ohlc",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve LTP of upto 200 instruments
+        @param instrumentId  Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL
+                      (eg: NSE:INFY) or InstrumentToken (eg: 408065)
+        @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getLTP( std::vector<std::string> instrumentId )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() || instrumentId.empty() || instrumentId.size() > 200 )
+            {
+              result["status"] = "error";
+              return result;
+            }
+            
+            std::multimap<std::string, std::string> param;
+            for ( auto &i : instrumentId )
+            {
+                util::addIfNotNull( param, "i", i );
+            }
+            
+            _GET("market.ltp",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve historical data (candles) for an instrument.
+        @param instrumentToken  Identifier for the instrument whose historical records you want to fetch. This is obtained with the instrument list API.
+        @param fromDate Date in format yyyy-MM-dd for fetching candles between two days. Date in format yyyy-MM-dd hh:mm:ss for fetching candles between two timestamps.
+        @param toDate Date in format yyyy-MM-dd for fetching candles between two days. Date in format yyyy-MM-dd hh:mm:ss for fetching candles between two timestamps.
+        @param interval The candle record interval. Possible values are: minute, day, 3minute, 5minute, 10minute, 15minute, 30minute, 60minute
+        @param continuous Pass true to get continous data of expired instruments.
+        @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getLTP(
+            std::string instrumentToken,
+            std::string fromDate,
+            std::string toDate,
+            std::string interval,
+            bool continuous = false
+        )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() || instrumentToken.empty() )
+            {
+              result["status"] = "error";
+              return result;
+            }
+            
+            std::multimap<std::string, std::string> param;
+
+            util::addIfNotNull( param, "instrument_token", instrumentToken );
+            util::addIfNotNull( param, "from",  fromDate );
+            util::addIfNotNull( param, "to", toDate );
+            util::addIfNotNull( param, "interval", interval );
+            util::addIfNotNull( param, "continuous", continuous );
+            
+            _GET("market.historical",param,result);
+            return result;
+        }
+        
+        /*!
+        @brief    Retrieve the buy/sell trigger range for Cover Orders.
+        @param instrumentId Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL (eg: NSE:INFY) or InstrumentToken (eg: 408065)
+        @param trasactionType  BUY or SELL
+        @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
+                        error: { 'status' : 'error'  }
+        */
+        inline json& getTriggerRange(
+            std::vector<std::string> instrumentId,
+            std::string trasactionType
+        )
+        {
+            static json result = json({}); // object
+            result.clear();
+            
+            if ( this->api_key.empty() || instrumentToken.empty() )
+            {
+              result["status"] = "error";
+              return result;
+            }
+            
+            std::multimap<std::string, std::string> param;
+            for ( auto &i : instrumentId )
+            {
+                util::addIfNotNull( param, "i", i );
+            }
+            util::addIfNotNull( param, "transaction_type", trasactionType );
+            
+            _GET("market.trigger_range",param,result);
+            return result;
+        }
 ////////////////////////////////////
 ///// PRIVATE FUNCTIONS  /////
 ////////////////////////////////////
@@ -805,7 +1108,7 @@ namespace kite
         @return completed URL
         */
         std::string _create_url( std::string route,
-                                          std::map<std::string, std::string>  patternMap)
+                                           std::multimap<std::string, std::string>  patternMap)
         {
             auto url_p = _routes.find(route);
             if (url_p == _routes.end() || url_p->second.empty())
@@ -876,12 +1179,17 @@ namespace kite
                     if (!patternMap.count(key))
                         throw InputException(fmt::format("Missing key \"{:s}\" in Userinput map", key));
                     
-                    BOOST_LOG_TRIVIAL(debug)
-                        << fmt::format(fmt("\n \"URL constructed till now\" is \"{:s}\" "), url)
-                        << fmt::format(fmt("\n userInput patternMap Value : \"{:s}\""), patternMap.at(key));
-                    
-                    url.append(patternMap.at(key));
-                    patternMap.erase(key);
+                    auto range = patternMap.equal_range(key);
+                    auto i = range.first; 
+                    if ( i != range.second )
+                    {
+                        BOOST_LOG_TRIVIAL(debug)
+                            << fmt::format(fmt("\n \"URL constructed till now\" is \"{:s}\" "), url)
+                            << fmt::format(fmt("\n userInput patternMap Value : \"{:s}\""), i->second);
+                        
+                        url.append(i->second);
+                        patternMap.erase(i);
+                    }
                 }
                 break;
 
@@ -918,10 +1226,10 @@ namespace kite
         }
 
         /// @brief common session setter
-        void _setSessionParams(    const httpReq &verb,
-                                const std::string route,
-                                std::map<std::string, std::string>  &details,
-                                std::string overRideURL = "")
+        void _setSessionParams( const httpReq &verb,
+                                              const std::string route,
+                                              std::multimap<std::string, std::string>  &details,
+                                              std::string overRideURL = "")
         {
             // 1. set headers
             cpr::Header reqHeader = HEADER; // a copy
@@ -1013,7 +1321,7 @@ namespace kite
         @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
         */
         void _GET(  const std::string route,
-                          std::map<std::string, std::string>  &details,
+                          std::multimap<std::string, std::string>  &details,
                           json &result,
                           bool saveResultCookie = false)
         {
@@ -1028,7 +1336,7 @@ namespace kite
             @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
         */
         void _DELETE(  const std::string route,
-                              std::map<std::string, std::string>  &details,
+                              std::multimap<std::string, std::string>  &details,
                               json &result,
                               bool saveResultCookie = false)
         {
@@ -1043,7 +1351,7 @@ namespace kite
             @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
         */
         void _PUT( const std::string route,
-                        std::map<std::string, std::string>  &details,
+                        std::multimap<std::string, std::string>  &details,
                         json &result,
                         bool saveResultCookie = false)
         {
@@ -1058,7 +1366,7 @@ namespace kite
             @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
         */
         void _POST( const std::string route,
-                          std::map<std::string, std::string>  &details,
+                          std::multimap<std::string, std::string>  &details,
                           json &result,
                           bool saveResultCookie = false)
         {
