@@ -22,6 +22,17 @@
 using namespace fmt::literals; //  _a and _format
 using json = nlohmann::json;
 
+// CSV decode
+/*
+std::vector<kite::csvParse::Row> result = kite::csvParse::csvParse(resp.text.c_str(), resp.text.length());
+for (size_t r = 0; r < result.size(); r++) {
+    kite::csvParse::Row& row = result[r];
+    for (size_t c = 0; c < row.size() - 1; c++) {
+        std::cout << row[c] << "\t";
+    }
+    std::cout << row.back() << std::endl;
+}
+*/
 
 namespace kite
 {
@@ -213,7 +224,7 @@ namespace kite
 
                 To place order
                 std::string route = "order.place";
-                std::multimap < std::string, std::string> details{ 
+                std::multimap <std::string, std::string> details{ 
                     {"variety", kite::VARIETY_REGULAR},
                     {"tradingsymbol", "INFY"},
                     {"exchange",            kite::EXCHANGE_NSE},
@@ -255,16 +266,16 @@ namespace kite
     public:
         /*!
         @brief : Initialize a new Kite Connect client instance.
-        @param apiKey             API Key issued to you
-        @param accessToken     The token obtained after the login flow in exchange for the `RequestToken` . 
-                                            Pre-login, this will default to None,but once you have obtained it, you should persist it in a database or session to pass 
-                                            to the Kite Connect class initialisation for subsequent requests.
-        @param rootUrl             API end point root. Unless you explicitly want to send API requests to a non-default endpoint, this can be ignored.
-        @param enableDebug    If set to True, will serialise and print requests and responses to stdout.
-        @param timeoutValInSec  Time in milliseconds for which  the API client will wait for a request to complete before it fails.
-        @param proxySetting        To set proxy for http request. Should be an object of cpr::Proxies.
+        @param apiKey            API Key issued to you
+        @param accessToken       The token obtained after the login flow in exchange for the `RequestToken` . 
+                                 Pre-login, this will default to None,but once you have obtained it, you should persist it in a database or session to pass 
+                                 to the Kite Connect class initialisation for subsequent requests.
+        @param rootUrl           API end point root. Unless you explicitly want to send API requests to a non-default endpoint, this can be ignored.
+        @param enableDebug       If set to True, will serialise and print requests and responses to stdout.
+        @param timeoutValInSec   Time in milliseconds for which  the API client will wait for a request to complete before it fails.
+        @param proxySetting      To set proxy for http request. Should be an object of cpr::Proxies.
         @param userdefinedHeader Client supplied http header fields.
-        @param disableSSL            Disable SSL ( to bypass certificate check problem ).
+        @param disableSSL        Disable SSL ( to bypass certificate check problem ).
         */
         KiteConnect(
             std::string  apiKey,
@@ -376,13 +387,13 @@ namespace kite
         
         /*!
           @brief  Generate user session details like `access_token` etc by exchanging `request_token`.
-                      Access token is automatically set if the session is retrieved successfully.
-                      Do the token exchange with the `request_token` obtained after the login flow,
-                      and retrieve the `access_token` required for all subsequent requests. The
-                      response contains not just the `access_token`, but metadata for
-                      the user who has authenticated.
+                  Access token is automatically set if the session is retrieved successfully.
+                  Do the token exchange with the `request_token` obtained after the login flow,
+                  and retrieve the `access_token` required for all subsequent requests. The
+                  response contains not just the `access_token`, but metadata for
+                  the user who has authenticated.
           @param  requestToken  is the token obtained from the GET paramers after a successful login redirect.
-          @param  appSecret       is the API api_secret issued with the API key.
+          @param  appSecret     is the API api_secret issued with the API key.
           @return User structure with tokens and profile data
                         error: { 'status' : 'error'  }
           */
@@ -413,7 +424,7 @@ namespace kite
         /*!
           @brief  Kill the session by invalidating the access token
           @param  accessToken  Access token to invalidate. Default is the active access token..
-          @param  appSecret       is the API api_secret issued with the API key.
+          @param  appSecret    is the API api_secret issued with the API key.
           @return User structure with tokens and profile data
                         error: { 'status' : 'error'  }
           */
@@ -437,7 +448,7 @@ namespace kite
 
         /*!
           @brief  Invalidates RefreshToken.
-          @param  refreshToken  RefreshToken to invalidate.
+          @param  refreshToken RefreshToken to invalidate.
           @return User structure with token
                         error: { 'status' : 'error'  }
         */
@@ -463,7 +474,7 @@ namespace kite
         /*!
           @brief  Renew AccessToken using RefreshToken.
           @param  refreshToken  RefreshToken to renew the AccessToken.
-          @param  appSecret       is the API api_secret issued with the API key.
+          @param  appSecret     is the API api_secret issued with the API key.
           @return User structure with TokenRenewResponse that contains new AccessToken and RefreshToken.
                         error: { 'status' : 'error'  }
         */
@@ -541,7 +552,7 @@ namespace kite
         }
         
         /*!
-          @brief  Get account balance and cash margin details for a particular segment.
+          @brief Get account balance and cash margin details for a particular segment.
           @param segment Trading segment (eg: equity or commodity)
           @return User structure with User margin response with both equity and commodity margins.
                         error: { 'status' : 'error'  }
@@ -564,7 +575,7 @@ namespace kite
         }
         
         /*!
-        @brief    Place an order.
+        @brief Place an order.
         @param Exchange Name of the exchange.
         @param TradingSymbol Tradingsymbol of the instrument.
         @param TransactionType BUY or SELL.
@@ -576,16 +587,16 @@ namespace kite
         @param DisclosedQuantity Quantity to disclose publicly (for equity trades).
         @param TriggerPrice For SL, SL-M etc..
         @param SquareOffValue Price difference at which the order should be squared off and
-                      profit booked (eg: Order price is 100. Profit target is 102. So squareoff = 2).
+               profit booked (eg: Order price is 100. Profit target is 102. So squareoff = 2).
         @param StoplossValue Stoploss difference at which the order should be squared off
-                      (eg: Order price is 100. Stoploss target is 98. So stoploss = 2).
+               (eg: Order price is 100. Stoploss target is 98. So stoploss = 2).
         @param TrailingStoploss Incremental value by which stoploss price changes when market moves
-                      in your favor by the same incremental value from the entry price (optional).
+               in your favor by the same incremental value from the entry price (optional).
         @param Variety You can place orders of varieties; regular orders, after market orders, cover orders etc. .
-                      Default VARIETY_REGULAR.
+               Default VARIETY_REGULAR.
         @param Tag An optional tag to apply to an order to identify it (alphanumeric, max 8 chars).
         @return Json response in the form of nested string dictionary.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& placeOrder(
             std::string Exchange,
@@ -642,7 +653,7 @@ namespace kite
         }
                 
         /*!
-        @brief    Modify an open order.
+        @brief Modify an open order.
         @param OrderId Id of the order to be modified.
         @param ParentOrderId Id of the parent order (obtained from the /orders call) as BO is a multi-legged order.
         @param Exchange Name of the exchange.
@@ -657,7 +668,7 @@ namespace kite
         @param TriggerPrice For SL, SL-M etc..
         @param Variety You can place orders of varieties; regular orders, after market orders, cover orders etc. .
         @return Json response in the form of nested string dictionary.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& modifyOrder(
             std::string OrderId,
@@ -719,12 +730,12 @@ namespace kite
         }
         
         /*!
-        @brief    Cancel an order.
+        @brief Cancel an order.
         @param OrderId Id of the order to be modified.
         @param ParentOrderId Id of the parent order (obtained from the /orders call) as BO is a multi-legged order.
         @param Variety You can place orders of varieties; regular orders, after market orders, cover orders etc. .
         @return Json response in the form of nested string dictionary.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& modifyOrder(
             std::string OrderId,
@@ -750,9 +761,9 @@ namespace kite
         }
         
         /*!
-        @brief    Gets the collection of orders from the orderbook.
+        @brief  Gets the collection of orders from the orderbook.
         @return Json response in the form of nested string dictionary.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getOrders( )
         {
@@ -771,10 +782,10 @@ namespace kite
         }
         
         /*!
-        @brief    Gets the collection of orders from the orderbook.
+        @brief Gets the collection of orders from the orderbook.
         @param orderId Unique order id
         @return Json response in the form of nested string dictionary.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getOrderHistory( std::string orderId )
         {
@@ -794,13 +805,13 @@ namespace kite
         }
         
         /*!
-        @brief    Retreive the list of trades executed (all or ones under a particular order).
-                      An order can be executed in tranches based on market conditions.
-                      These trades are individually recorded under an order.
+        @brief  Retreive the list of trades executed (all or ones under a particular order).
+                An order can be executed in tranches based on market conditions.
+                These trades are individually recorded under an order.
         @param orderId is the ID of the order (optional) whose trades are to be retrieved.
-                      If no `OrderId` is specified, all trades for the day are returned.
+                       If no `OrderId` is specified, all trades for the day are returned.
         @return Json response in the form of nested string dictionary (CSV). List of trades of given order.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getOrderTrades( std::string orderId = "" )
         {
@@ -826,9 +837,9 @@ namespace kite
         }
         
         /*!
-        @brief    Retrieve the list of positions.
+        @brief  Retrieve the list of positions.
         @return Json response in the form of nested string dictionary. Day and net positions.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getPositions( )
         {
@@ -847,9 +858,9 @@ namespace kite
         }
         
         /*!
-        @brief    Retrieve the list of equity holdings.
+        @brief  Retrieve the list of equity holdings.
         @return Json response in the form of nested string dictionary. List of holdings.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getHoldings( )
         {
@@ -868,16 +879,16 @@ namespace kite
         }
         
         /*!
-        @brief    Modify an open position's product type.
-        @param exchange           Name of the exchange
+        @brief Modify an open position's product type.
+        @param exchange         Name of the exchange
         @param tradingSymbol    Tradingsymbol of the instrument
         @param transactionType  BUY or SELL
-        @param positionType       overnight or day
-        @param quantity             Quantity to convert
-        @param oldProduct          Existing margin product of the position
-        @param newProduct         Margin product to convert to
+        @param positionType     overnight or day
+        @param quantity         Quantity to convert
+        @param oldProduct       Existing margin product of the position
+        @param newProduct       Margin product to convert to
         @return Json response in the form of nested string dictionary.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& convertPosition( 
             std::string exchange,
@@ -912,11 +923,11 @@ namespace kite
         
         /*!
         @brief    Retrieve the list of market instruments available to trade.
-                      Note that the results could be large, several hundred KBs in size,
-                      with tens of thousands of entries in the list
-        @param exchange           Name of the exchange
+                  Note that the results could be large, several hundred KBs in size,
+                  with tens of thousands of entries in the list
+        @param exchange Name of the exchange
         @return Json response in the form of nested string dictionary.List of instruments.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getInstruments( std::string exchange = "" )
         {
@@ -943,7 +954,7 @@ namespace kite
         }
         
         /*!
-        @brief    Retrieve quote and market depth of upto 200 instruments
+        @brief Retrieve quote and market depth of upto 200 instruments
         @param instrumentId  Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL
                       (eg: NSE:INFY) or InstrumentToken (eg: 408065)
         @return Json response in the form of nested string dictionary.All Quote objects with keys as in InstrumentId.
@@ -972,9 +983,9 @@ namespace kite
         /*!
         @brief    Retrieve LTP and OHLC of upto 200 instruments
         @param instrumentId  Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL
-                      (eg: NSE:INFY) or InstrumentToken (eg: 408065)
+                             (eg: NSE:INFY) or InstrumentToken (eg: 408065)
         @return Json response in the form of nested string dictionary.All Quote objects with keys as in InstrumentId.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getOHLC( std::vector<std::string> instrumentId )
         {
@@ -998,11 +1009,11 @@ namespace kite
         }
         
         /*!
-        @brief    Retrieve LTP of upto 200 instruments
+        @brief Retrieve LTP of upto 200 instruments
         @param instrumentId  Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL
-                      (eg: NSE:INFY) or InstrumentToken (eg: 408065)
+                             (eg: NSE:INFY) or InstrumentToken (eg: 408065)
         @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getLTP( std::vector<std::string> instrumentId )
         {
@@ -1026,14 +1037,14 @@ namespace kite
         }
         
         /*!
-        @brief    Retrieve historical data (candles) for an instrument.
+        @brief Retrieve historical data (candles) for an instrument.
         @param instrumentToken  Identifier for the instrument whose historical records you want to fetch. This is obtained with the instrument list API.
         @param fromDate Date in format yyyy-MM-dd for fetching candles between two days. Date in format yyyy-MM-dd hh:mm:ss for fetching candles between two timestamps.
         @param toDate Date in format yyyy-MM-dd for fetching candles between two days. Date in format yyyy-MM-dd hh:mm:ss for fetching candles between two timestamps.
         @param interval The candle record interval. Possible values are: minute, day, 3minute, 5minute, 10minute, 15minute, 30minute, 60minute
         @param continuous Pass true to get continous data of expired instruments.
         @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getLTP(
             std::string instrumentToken,
@@ -1065,11 +1076,11 @@ namespace kite
         }
         
         /*!
-        @brief    Retrieve the buy/sell trigger range for Cover Orders.
-        @param instrumentId Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL (eg: NSE:INFY) or InstrumentToken (eg: 408065)
-        @param trasactionType  BUY or SELL
+        @brief Retrieve the buy/sell trigger range for Cover Orders.
+        @param instrumentId   Indentification of instrument in the form of EXCHANGE:TRADINGSYMBOL (eg: NSE:INFY) or InstrumentToken (eg: 408065)
+        @param trasactionType BUY or SELL
         @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
-                        error: { 'status' : 'error'  }
+                error: { 'status' : 'error'  }
         */
         inline json& getTriggerRange(
             std::vector<std::string> instrumentId,
@@ -1102,13 +1113,13 @@ namespace kite
 
         /*!
         @brief Create url from input map of route & patterns
-                   boost::regex with boost::sregex_token_iterator could replace all this code.
+               boost::regex with boost::sregex_token_iterator could replace all this code.
         @param route : will use this as key to _route to get url pattern
         @param patternMap : Map of parameters for request, will pop keys matching url pattern
         @return completed URL
         */
         std::string _create_url( std::string route,
-                                           std::multimap<std::string, std::string>  patternMap)
+                                 std::multimap<std::string, std::string>  patternMap)
         {
             auto url_p = _routes.find(route);
             if (url_p == _routes.end() || url_p->second.empty())
@@ -1125,7 +1136,7 @@ namespace kite
             url.reserve(patternStr.length());
 
             // USER DEFINED PARSER for '{' & '}' tokens
-            // 2 case :
+            // there are two cases :
             // a. no '{' '}' pair exist
             // b. pair of '{' '}' exist, cannot be without pairs
             
@@ -1213,11 +1224,11 @@ namespace kite
         }
 
         //////////////////////////////////////////////////////
-        //////        CONNECTION PRIVATE FUNCTION            //////
+        //////        CONNECTION PRIVATE FUNCTION       //////
         //////////////////////////////////////////////////////
 
-        void addExtraHeaders(const std::string &route,
-                                          cpr::Header &passedHeader)
+        void addExtraHeaders( const std::string &route,
+                              cpr::Header &passedHeader)
         {
             passedHeader.insert_or_assign("origin","https://kite.zerodha.com");
             passedHeader.insert_or_assign("X-Kite-Version", kite_version);
@@ -1227,9 +1238,9 @@ namespace kite
 
         /// @brief common session setter
         void _setSessionParams( const httpReq &verb,
-                                              const std::string route,
-                                              std::multimap<std::string, std::string>  &details,
-                                              std::string overRideURL = "")
+                                const std::string route,
+                                std::multimap<std::string, std::string>  &details,
+                                std::string overRideURL = "")
         {
             // 1. set headers
             cpr::Header reqHeader = HEADER; // a copy
@@ -1242,13 +1253,15 @@ namespace kite
             for (auto &h : reqHeader)
                 BOOST_LOG_TRIVIAL(debug) << fmt::format("{} : {}", h.first, h.second);
             session.SetHeader(reqHeader);
+            
             // 2. set cookies
             session.SetCookies(cookieJar[currState]);
+            
             // 3. create url : will consume details
             auto url = overRideURL;
             if (url.empty())
                 url = _create_url(route, details);
-            session.SetUrl(url);
+            session.SetUrl(std::move(url));
 
             // 4. set parameters / payload / body
             cpr::Parameters params{};
@@ -1262,28 +1275,22 @@ namespace kite
                 for (auto &p : details)
                     params.AddParameter(cpr::Parameter(p.first, p.second));
                 debugParamStr = (params.content.length() ? params.content : "None");
-                session.SetParameters(params);
+                session.SetParameters(std::move(params));
             }
             else if (verb == POST)
             {
                 for (auto &p : details)
                     payload.AddPair(cpr::Pair(p.first, p.second));
                 debugParamStr = (payload.content.length() ? payload.content : "None");
-                //body.assign(payload.content);
-                //session.SetBody(body);
-                session.SetPayload(payload);
-                //url.append("?"+ payload.content);
 
-                reqHeader.insert_or_assign("content-type", "application/x-www-form-urlencoded");
-                reqHeader.insert_or_assign("content-length", std::to_string( payload.content.length() ) );
-                session.SetHeader(reqHeader);
+                session.SetPayload(std::move(payload));
             }
             else if (verb == PUT )
             {
                 for (auto &p : details)
                     payload.AddPair(cpr::Pair(p.first, p.second));
                 debugParamStr = (payload.content.length() ? payload.content : "None");
-                session.SetPayload(payload);
+                session.SetPayload(std::move(payload));
             }
 
 
@@ -1559,15 +1566,6 @@ namespace kite
 
                 result = json::object_t::value_type("result",json);
             }
-            //
-            //std::vector<kite::csvParse::Row> result = kite::csvParse::csvParse(resp.text.c_str(), resp.text.length());
-            //for (size_t r = 0; r < result.size(); r++) {
-            //    kite::csvParse::Row& row = result[r];
-            //    for (size_t c = 0; c < row.size() - 1; c++) {
-            //        std::cout << row[c] << "\t";
-            //    }
-            //    std::cout << row.back() << std::endl;
-            //}
             else if (compareCaseInsensitiveString(resp.header["Content-Type"], std::string("csv")) ||
                      compareCaseInsensitiveString(resp.header["Content-Type"], std::string("text/html")) ||
                      compareCaseInsensitiveString(resp.header["Content-Type"], std::string("application/javascript")))
