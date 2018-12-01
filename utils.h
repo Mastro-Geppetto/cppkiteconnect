@@ -148,34 +148,19 @@ namespace util
       }
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // SFINAE test for presense of "empty" function in class
-  template <typename T>
-  class has_empty
+  void addIfNotNull( std::multimap<std::string, std::string> &map, const std::string &key, const std::string &value )
   {
-      typedef char one;
-      typedef long two;
-
-      template <typename C> static one test( typeof(&C::empty) ) ;
-      template <typename C> static two test(...);    
-
-  public:
-      enum { value = sizeof(test<T>(0)) == sizeof(char) };
-  };
-  
-  template<typename VALUE>
-  void addIfNotNull( std::multimap<std::string,std::string> &map, std::string key, VALUE value )
+    if ( !value.empty() )
+    {
+        map.emplace(key, value);
+    }
+  }
+  void addIfNotNull( std::multimap<std::string, std::string> &map, const std::string &key, const long double &value )
   {
-      if ( has_empty<VALUE>::value )
-      {
-        if ( !value.empty() )
-        {
-            map.emplace(key, value);
-        }
-      }
-      else if ( value != static_cast<VALUE>(0) )
-      {
+    if (!value)
+    {
         map.emplace( key, std::to_string(value) );
-      }
+    }
   }
   
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////

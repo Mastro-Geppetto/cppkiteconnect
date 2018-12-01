@@ -180,14 +180,6 @@ namespace kite
 
         boost::log::register_simple_formatter_factory< boost::log::trivial::severity_level, char >("Severity");
 
-        // Output message to console
-        /* by commenting below lines i have added a console sink */
-        /*boost::log::add_console_log(
-            std::cout,
-            boost::log::keywords::format = COMMON_FMT,
-            boost::log::keywords::auto_flush = true
-        );*/
-
         // Output message to file, rotates when file reached 1mb or at midnight every day. Each log file
         // is capped at 1mb and total is 20mb
         boost::log::add_file_log(
@@ -201,8 +193,16 @@ namespace kite
 
         boost::log::add_common_attributes();
 
-        // Only output message with INFO or higher severity in Release
-#ifndef _DEBUG
+#ifdef _DEBUG
+        // Output message to console
+        /* by commenting below lines i have added a console sink */
+        /*boost::log::add_console_log(
+            std::cout,
+            boost::log::keywords::format = COMMON_FMT,
+            boost::log::keywords::auto_flush = true
+        );*/
+#else // RELEASE
+        // Only output message with INFO or higher severity in Release       
         boost::log::core::get()->set_filter(
             boost::log::trivial::severity >= boost::log::trivial::info
         );
@@ -211,7 +211,7 @@ namespace kite
     }
 
     /*!
-    @brief :    Kite Connect is a set of REST-like APIs that expose
+    @brief : Kite Connect is a set of REST-like APIs that expose
                 many capabilities required to build a complete
                 investment and trading platform. Execute orders in
                 real time, manage user portfolio, stream live market
@@ -237,9 +237,6 @@ namespace kite
     */
     class KiteConnect
     {
-    public:
-        enum apiState { PRE_LOGIN, LOGGEDIN, LOGGOUT };
-
     private:
         std::string api_key;
         std::string access_token;
@@ -254,13 +251,12 @@ namespace kite
         std::string userId;
         std::string currentUrl;
         std::string kite_version;
-        apiState currState;
 
         std::function<void(void)> session_expiry_hook;
 
         cpr::Session session;
-        // We need two cookies 1. Initial login cookie, 2. after login
-        cpr::Cookies cookieJar[LOGGOUT];
+        // Do We need two cookies ter login
+        cpr::Cookies cookie;
         cpr::Header headers;
 
     public:
@@ -360,7 +356,7 @@ namespace kite
                           clear session cookies, or initiate a fresh login.
             @param functionPtr : User action to be invoked when session becomes invalid.
         */
-        inline void set_session_expiry_hook(std::function<void(void)> functionPtr = nullptr)
+        inline void setSessionExpiryHook(std::function<void(void)> functionPtr = nullptr)
         {
             if (nullptr != functionPtr)
                 this->session_expiry_hook = functionPtr;
@@ -693,9 +689,9 @@ namespace kite
               result["status"] = "error";
               return result;
             }
-            
+            CaseInsensitiveStringCompare compare;
             if ( (Product == PRODUCT_BO || Product == PRODUCT_CO) &&
-                  false == util::CaseInsensitiveStringCompare(Variety, Product) ) )
+                  false == util::compare(Variety, Product) ) )
             {
                 throw InputException(fmt::format(fmt("Invalid variety. It should be: \"{:s}\""), Product));
             }
@@ -770,7 +766,7 @@ namespace kite
             static json result = json({}); // object
             result.clear();
             
-            if ( this->api_key.empty() || OrderId.empty() )
+            if ( this->api_key.empty() )
             {
               result["status"] = "error";
               return result;
@@ -792,14 +788,14 @@ namespace kite
             static json result = json({}); // object
             result.clear();
             
-            if ( this->api_key.empty() || OrderId.empty() )
+            if ( this->api_key.empty() || orderId.empty() )
             {
               result["status"] = "error";
               return result;
             }
 
             std::multimap<std::string, std::string> param;
-            param["order_id"] = orderId;
+            util::addIfNotNull(param,"order_id",orderId);
             _GET("orders",param,result);
             return result;
         }
@@ -827,7 +823,7 @@ namespace kite
             std::multimap<std::string, std::string> param;
             if ( ! orderId.empty() )
             {
-                param["order_id"] = orderId;
+                util::addIfNotNull(param,"order_id",orderId);
                 _GET("orders.trades",param,result);
                 return result;
             }
@@ -1090,7 +1086,7 @@ namespace kite
             static json result = json({}); // object
             result.clear();
             
-            if ( this->api_key.empty() || instrumentToken.empty() )
+            if ( this->api_key.empty() || instrumentId.empty() )
             {
               result["status"] = "error";
               return result;
@@ -1223,12 +1219,12 @@ namespace kite
             return url;
         }
 
-        //////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////
         //////        CONNECTION PRIVATE FUNCTION       //////
-        //////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////
 
         void addExtraHeaders( const std::string &route,
-                              cpr::Header &passedHeader)
+                                           cpr::Header &passedHeader)
         {
             passedHeader.insert_or_assign("origin","https://kite.zerodha.com");
             passedHeader.insert_or_assign("X-Kite-Version", kite_version);
@@ -1255,7 +1251,7 @@ namespace kite
             session.SetHeader(reqHeader);
             
             // 2. set cookies
-            session.SetCookies(cookieJar[currState]);
+            session.SetCookies(cookie);
             
             // 3. create url : will consume details
             auto url = overRideURL;
@@ -1305,18 +1301,18 @@ namespace kite
                         "\n-------------------------------------"
                         "\nREQUEST"
                         "\n-------------------------------------"
-                        "\nmethod               : {}"
-                        "\nURL                  : {}"
+                        "\nmethod                       : {}"
+                        "\nURL                            : {}"
                         "\nparams/body/payload  : {}"
-                        "\nheaders              : {}"
-                        "\ncookie               : {}"
+                        "\nheaders                      : {}"
+                        "\ncookie                         : {}"
                         "\n-------------------------------------\n"
                     ),
                         httpVerbMap.at(verb),
                         url,
                         debugParamStr,
                         to_string(headerBuf),
-                        cookieJar[currState].GetEncoded());
+                        userDefinedCookie.GetEncoded());
             }
 
         }
@@ -1324,65 +1320,76 @@ namespace kite
         /*!
         @brief GET request
         @param route  [in]  : Set by requester , it is the key of predefined _routes map
-        @param result [out] : json result
-        @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
+        @param saveResultCookie [in] : optional: defaults to false, if true then saves response cookie.
+        @param overRideURL [in] : optional: a userdefined URL.
         */
-        void _GET(  const std::string route,
+        void _GET( const std::string &route,
                           std::multimap<std::string, std::string>  &details,
                           json &result,
-                          bool saveResultCookie = false)
+                          bool saveResultCookie = false,
+                          std::string overRideURL = ""
+                      )
         {
-            _setSessionParams(GET, route, details);
-            _request(GET, result, saveResultCookie);
+            _setSessionParams(GET, route, details, overRideURL);
+            _request(GET, result, route, saveResultCookie);
         }
 
         /*!
             @brief DELETE request
             @param route  [in]  : Set by requester , it is the key of predefined _routes map
             @param result [out] : json result
-            @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
+            @param saveResultCookie [in] : optional: defaults to false, if true then saves response cookie.
+            @param overRideURL [in] : optional: a userdefined URL.
         */
         void _DELETE(  const std::string route,
                               std::multimap<std::string, std::string>  &details,
                               json &result,
-                              bool saveResultCookie = false)
+                              bool saveResultCookie = false,
+                              std::string overRideURL = ""
+                            )
         {
-            _setSessionParams(DELETE, route, details);
-            _request(DELETE, result, saveResultCookie);
+            _setSessionParams(DELETE, route, details, overRideURL);
+            _request(DELETE, result, route, saveResultCookie);
         }
 
         /*!
             @brief PUT request
-            @param route  [in]  : Set by requester , it is the key of predefined _routes map
+            @param route  [in]  : Set by requester , it is the key ,of predefined _routes map
             @param result [out] : json result
-            @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
+            @param saveResultCookie [in] : optional: defaults to false, if true then saves response cookie.
+            @param overRideURL [in] : optional: a userdefined URL.
         */
         void _PUT( const std::string route,
                         std::multimap<std::string, std::string>  &details,
                         json &result,
-                        bool saveResultCookie = false)
+                        bool saveResultCookie = false,
+                        std::string overRideURL = ""
+                        )
         {
-            _setSessionParams(PUT, route, details);
-            _request(PUT, result, saveResultCookie);
+            _setSessionParams(PUT, route, details, overRideURL);
+            _request(PUT, result, route, saveResultCookie);
         }
 
         /*!
             @brief POST request
             @param route  [in]  : Set by requester , it is the key of predefined _routes map
             @param result [out] : json result
-            @param saveResultCookie [in] : defaults to false, if true then saves response cookie in index of "currState"
+            @param saveResultCookie [in] : optional: defaults to false, if true then saves response cookie.
+            @param overRideURL [in] : optional: a userdefined URL.
         */
         void _POST( const std::string route,
                           std::multimap<std::string, std::string>  &details,
                           json &result,
-                          bool saveResultCookie = false)
+                          bool saveResultCookie = false,
+                          std::string overRideURL = ""
+                          )
         {
-            _setSessionParams(POST, route, details);
-            _request(POST, result, saveResultCookie);
+            _setSessionParams(POST, route, details, overRideURL);
+            _request(POST, result, route, saveResultCookie);
         }
 
 
-        void _request(httpReq verb, json &result, bool saveResultCookie=false )
+        void _request(httpReq verb, json &result, std::string route="default", bool saveResultCookie=false )
         {
             if (result.type() != json::value_t::object)
             {
@@ -1448,11 +1455,11 @@ namespace kite
                         "\nRESPONSE"
                         "\n-------------------------------------"
                         "\nStatus code  : {}"
-                        "\nError code   : {}\n"
-                        "\nHeaders      : {}"
-                        "\nCookie       : {}"
-                        "\nContent      : {}"
-                        "\nError msg    : {}"
+                        "\nError code    : {}\n"
+                        "\nHeaders       : {}"
+                        "\nCookie         : {}"
+                        "\nContent        : {}"
+                        "\nError msg     : {}"
                         "\n-------------------------------------\n"),
                         resp.status_code,
                         int(resp.error.code),
@@ -1564,7 +1571,7 @@ namespace kite
 
                 }
 
-                result = json::object_t::value_type("result",json);
+                result += json::object_t::value_type("result",json);
             }
             else if (compareCaseInsensitiveString(resp.header["Content-Type"], std::string("csv")) ||
                      compareCaseInsensitiveString(resp.header["Content-Type"], std::string("text/html")) ||
@@ -1585,7 +1592,7 @@ namespace kite
 
             if (saveResultCookie)
             {
-                cookieJar[currState] = resp.cookies;
+                cookie = resp.cookies;
             }
         }
     };
