@@ -101,7 +101,8 @@ int main()
       json user = kite.GenerateSession(RequestToken, MySecret);
 
       std::string MyAccessToken = user.at("result").at("data").at("access_token");
-      std::string MyPublicToken = user.at("result").at("data").at("public_token");
+      std::string MyPublicToken = user.at("result").at("data").at("public
+      token");
 
       // Initialize Kite APIs with access token
       kite.SetAccessToken(MyAccessToken);
@@ -126,7 +127,7 @@ int main()
       std::cout << std::endl << response.dump(4) << std::endl;
       std::cout << "Order Id: " + response.at("result").at("data").at("order_id").get<std::string>();
    }
-   catch (const std::runtime\_error& re)
+   catch (const std::runtime_error& re)
    {
       // speciffic handling for runtime_error
       std::cerr << "Runtime error: " << re.what() << std::endl;
