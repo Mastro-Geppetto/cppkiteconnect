@@ -1,5 +1,5 @@
 # cppkiteconnect
-Unofficial c++ client for communicating with the [Kite Connect API](https://kite.trade).
+Unofficial headers only c++ client for communicating with the [Kite Connect API](https://kite.trade).
 
 It is based on [official zerodha dotnetkiteconnect](https://github.com/zerodhatech/dotnetkiteconnect).
 
