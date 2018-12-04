@@ -1,26 +1,5 @@
 /*
- * nghttp2 - HTTP/2 C Library
- *
- * Copyright (c) 2012 Tatsuhiro Tsujikawa
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+https://raw.githubusercontent.com/nghttp2/nghttp2/master/COPYING
  */
 
 #pragma once
@@ -31,6 +10,8 @@
 #include <map>
 #include <functional>
 #include <algorithm>
+#include <iterator>
+#include <regex>
 
 #include <openssl/evp.h>
 
@@ -170,10 +151,10 @@ namespace util
   namespace csvParse
   {
       // used to split the file in lines
-      const boost::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
+      const std::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
 
       // used to split each line to tokens, assuming ',' as column separator
-      const boost::regex fieldsregx(",(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+      const std::regex fieldsregx(",(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
 
       typedef std::vector<std::string> Row;
 
@@ -182,16 +163,16 @@ namespace util
           std::vector<Row> result;
 
           // iterator splits data to lines
-          boost::cregex_token_iterator li(data, data + length, linesregx, -1);
-          boost::cregex_token_iterator end;
+          std::cregex_token_iterator li(data, data + length, linesregx, -1);
+          std::cregex_token_iterator end;
 
           while (li != end) {
               std::string line = li->str();
               ++li;
 
               // Split line to tokens
-              boost::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
-              boost::sregex_token_iterator end2;
+              std::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
+              std::sregex_token_iterator end2;
 
               std::vector<std::string> row;
               while (ti != end2) {

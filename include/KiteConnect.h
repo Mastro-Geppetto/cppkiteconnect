@@ -13,11 +13,11 @@
 #include "utils.h"
 #include "KiteException.h"
 
-#include <boost/regex.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/setup.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 using namespace fmt::literals; //  _a and _format
 using json = nlohmann::json;
@@ -146,15 +146,12 @@ namespace kite
     const std::string STATUS_CANCELLED = "CANCELLED";
 
 
-    typedef enum { GET, DELETE, POST, PUT, PATCH, HEAD, OPTIONS } httpReq;
+    typedef enum { GET, DELETE, POST, PUT } httpReq;
     const std::map<httpReq, std::string> httpVerbMap = {
         { GET,        "GET"},
         { DELETE,   "DELETE"},
         { POST,      "POST"},
-        { PUT,        "PUT" },
-        { PATCH,    "PATCH" },
-        { HEAD,     "HEAD" },
-        { OPTIONS,"OPTIONS" }
+        { PUT,        "PUT" }
     };
 
     /*=======================================================*/
@@ -183,7 +180,7 @@ namespace kite
         // Output message to file, rotates when file reached 1mb or at midnight every day. Each log file
         // is capped at 1mb and total is 20mb
         boost::log::add_file_log(
-            boost::log::keywords::file_name = "sample_%3N.log",
+            boost::log::keywords::file_name = "cppKiteConnect_%3N.log",
             boost::log::keywords::rotation_size = 1 * 1024 * 1024,
             boost::log::keywords::max_size = 20 * 1024 * 1024,
             boost::log::keywords::time_based_rotation = boost::log::sinks::file::rotation_at_time_point(0, 0, 0),
@@ -241,21 +238,21 @@ namespace kite
         std::string api_key;
         std::string access_token;
         std::string root;
+        cpr::Proxies proxies;
         bool debugEnabled;
         cpr::Timeout timeout;
-        cpr::Proxies proxies;
         //todo: http pool not implemented
         bool verifySsl;
 
         // internal
+        std::string kite_version;
         std::string userId;
         std::string currentUrl;
-        std::string kite_version;
 
         std::function<void(void)> session_expiry_hook;
 
         cpr::Session session;
-        // Do We need two cookies ter login
+        // Do We need cookies
         cpr::Cookies cookie;
         cpr::Header headers;
 
@@ -278,16 +275,16 @@ namespace kite
             std::string  accessToken="",
             std::string  rootUrl="",
             /*HTTP pool*/
+            cpr::Proxies proxySetting = cpr::Proxies(),
             bool enableDebug = false,
-            int timeoutValInSec = 0,
-            const cpr::Proxies &proxySetting,
-            const cpr::Header  &userdefinedHeader,
+            int timeoutValInSec = 7000,
+            cpr::Header  userdefinedHeader = cpr::Header(),
             /*if enabled, you may face problem in certificate validation in libCurl*/
             bool disableSSL = true
         ) :
             api_key(apiKey),
             access_token(accessToken),
-            root( rootUrl.empty() ? _DEFAULT_BASE_URI : rootUrl ),
+            root( rootUrl.empty() ? _DEFAULT_API_URI : rootUrl ),
             proxies(proxySetting),
             // http pool not implemented
             debugEnabled(enableDebug),
@@ -324,7 +321,6 @@ namespace kite
                 }
             }
 
-            currState = LOGGOUT;
         };
         
         ~KiteConnect() {};
@@ -378,7 +374,7 @@ namespace kite
          */
         inline std::string GetLoginURL()
         {
-            return fmt::format(fmt("{:s}?api_key={:s}&v=3"), _DEFAULT_LOGIN_URI, api_key);
+            return fmt::format("{:s}?api_key={:s}&v=3", _DEFAULT_LOGIN_URI, api_key);
         }
         
         /*!
@@ -400,7 +396,7 @@ namespace kite
             // calculate SHA256 using openSSL api
             uint8_t checksum[EVP_MAX_MD_SIZE];
             std::string input = this->api_key + requestToken + appSecret;
-            int length = util::sha256( &checksum, input );
+            int length = util::sha256( &checksum[0], input );
             if ( length == -1 )
             {
                 result["status"] = "error";
@@ -488,7 +484,7 @@ namespace kite
             // calculate SHA256 using openSSL api
             uint8_t checksum[EVP_MAX_MD_SIZE];
             std::string input = this->api_key + refreshToken + appSecret;
-            int length = util::sha256( &checksum, input );
+            int length = util::sha256( &checksum[0], input );
             if ( length == -1 )
             {
                 result["status"] = "error";
@@ -498,7 +494,7 @@ namespace kite
             // post
             std::multimap<std::string, std::string> param;
             util::addIfNotNull(param,"api_key", this->api_key);
-            util::addIfNotNull(param,"refresh_token", requestToken);
+            util::addIfNotNull(param,"refresh_token", refreshToken);
             util::addIfNotNull(param,"checksum",std::string( *checksum, length ));
             
             _POST("api.refresh", param, result, false);
@@ -689,11 +685,11 @@ namespace kite
               result["status"] = "error";
               return result;
             }
-            CaseInsensitiveStringCompare compare;
+            util::CaseInsensitiveStringCompare compare;
             if ( (Product == PRODUCT_BO || Product == PRODUCT_CO) &&
-                  false == util::compare(Variety, Product) ) )
+                  false == compare(Variety, Product) )
             {
-                throw InputException(fmt::format(fmt("Invalid variety. It should be: \"{:s}\""), Product));
+                throw InputException(fmt::format("Invalid variety. It should be: \"{:s}\"", Product));
             }
             
             std::multimap<std::string, std::string> param;
@@ -1109,7 +1105,7 @@ namespace kite
 
         /*!
         @brief Create url from input map of route & patterns
-               boost::regex with boost::sregex_token_iterator could replace all this code.
+               std::regex with std::sregex_token_iterator could replace all this code.
         @param route : will use this as key to _route to get url pattern
         @param patternMap : Map of parameters for request, will pop keys matching url pattern
         @return completed URL
@@ -1119,13 +1115,13 @@ namespace kite
         {
             auto url_p = _routes.find(route);
             if (url_p == _routes.end() || url_p->second.empty())
-                throw InputException(fmt::format(fmt("Unknown route : \"{:s}\""), route));
+                throw InputException(fmt::format("Unknown route : \"{:s}\"", route));
 
             const std::string &patternStr = url_p->second;
 
             BOOST_LOG_TRIVIAL(debug)
                 << fmt::format("{:s}", __func__)
-                << fmt::format(fmt("\n \"URL Pattern\" is {:s} "), patternStr)
+                << fmt::format("\n \"URL Pattern\" is {:s} ", patternStr)
                 ;
 
             std::string url;
@@ -1143,7 +1139,6 @@ namespace kite
                 throw InputException(fmt::format("Expected \'{:c}\' , got \'{:c}\'",e, g));
             };
 
-            unsigned char nextExpectedPattern = '{';
             int count = 0;
             for (unsigned int idx = 0; idx < patternStr.length(); idx++)
             {
@@ -1159,7 +1154,7 @@ namespace kite
                     tok_1_Pos = idx;
                     // copy from prev '}' or zero to here is done at default case
                     BOOST_LOG_TRIVIAL(debug)
-                        << fmt::format(fmt(" case FIRST \"URL constructed till now\" is \"{:s}\" "), url);
+                        << fmt::format(" case FIRST \"URL constructed till now\" is \"{:s}\" ", url);
                 }
                 break;
 
@@ -1176,8 +1171,8 @@ namespace kite
                     auto key ( patternStr.substr( tok_1_Pos + 1, strSize ) );
 
                     BOOST_LOG_TRIVIAL(debug)
-                        << fmt::format(fmt(" case SECOND "))
-                        << fmt::format(fmt("\n \"patternStr\" pos1:{:d} pos2:{:d} substr \"{:s}\" "), tok_1_Pos + 1, tok_2_Pos - 1 , key);
+                        << fmt::format(" case SECOND ")
+                        << fmt::format("\n \"patternStr\" pos1:{:d} pos2:{:d} substr \"{:s}\" ", tok_1_Pos + 1, tok_2_Pos - 1 , key);
                     
                     if (key.empty())
                         throw InputException(fmt::format("Empty \"pattern\" String in Lib route map \"{:s}\"", patternStr));
@@ -1191,8 +1186,8 @@ namespace kite
                     if ( i != range.second )
                     {
                         BOOST_LOG_TRIVIAL(debug)
-                            << fmt::format(fmt("\n \"URL constructed till now\" is \"{:s}\" "), url)
-                            << fmt::format(fmt("\n userInput patternMap Value : \"{:s}\""), i->second);
+                            << fmt::format("\n \"URL constructed till now\" is \"{:s}\" ", url)
+                            << fmt::format("\n userInput patternMap Value : \"{:s}\"", i->second);
                         
                         url.append(i->second);
                         patternMap.erase(i);
@@ -1224,12 +1219,12 @@ namespace kite
         ////////////////////////////////////////////////////////////////
 
         void addExtraHeaders( const std::string &route,
-                                           cpr::Header &passedHeader)
+                              cpr::Header &passedHeader)
         {
-            passedHeader.insert_or_assign("origin","https://kite.zerodha.com");
-            passedHeader.insert_or_assign("X-Kite-Version", kite_version);
-            passedHeader.insert_or_assign("Authorization", "token "+api_key+":"+access_token);
-            passedHeader.insert_or_assign("Referer", "https://kite.zerodha.com/dashboard");
+            passedHeader["origin"]         = "https://kite.zerodha.com";
+            passedHeader["X-Kite-Version"] = kite_version;
+            passedHeader["Authorization"]  = "token "+api_key+":"+access_token;
+            passedHeader["Referer"]        = "https://kite.zerodha.com/dashboard";
         }
 
         /// @brief common session setter
@@ -1293,11 +1288,13 @@ namespace kite
             if (debugEnabled) // this is here to reduce scope
             {
                 fmt::memory_buffer headerBuf;
-                auto headerPrinter = [&](auto pair) {format_to(headerBuf, "{} :\t{}\n", pair.first, pair.second); };
-                std::for_each(reqHeader.begin(), reqHeader.end(), headerPrinter);
+                for( const auto &h : reqHeader)
+                {
+                  fmt::format_to(headerBuf, "{} :\t{}\n", h.first, h.second);
+                }
 
                 BOOST_LOG_TRIVIAL(debug) <<
-                    fmt::format(fmt(
+                    fmt::format(
                         "\n-------------------------------------"
                         "\nREQUEST"
                         "\n-------------------------------------"
@@ -1307,12 +1304,12 @@ namespace kite
                         "\nheaders                      : {}"
                         "\ncookie                         : {}"
                         "\n-------------------------------------\n"
-                    ),
+                    ,
                         httpVerbMap.at(verb),
                         url,
                         debugParamStr,
                         to_string(headerBuf),
-                        userDefinedCookie.GetEncoded());
+                        cookie.GetEncoded());
             }
 
         }
@@ -1444,13 +1441,15 @@ namespace kite
             if(debugEnabled) // this is here to reduce scope
             {
                 fmt::memory_buffer headerBuf;
-                auto headerPrinter = [&](auto pair) {format_to(headerBuf, "{} :\t{}\n", pair.first, pair.second); };
-                std::for_each(resp.header.begin(), resp.header.end(), headerPrinter);
+                for( const auto &h : resp.header)
+                {
+                  fmt::format_to(headerBuf, "{} :\t{}\n", h.first, h.second);
+                }
 
                 int contentCharLimit = resp.text.length() > 60 ? 60 : resp.text.length();
 
                 BOOST_LOG_TRIVIAL(debug) <<
-                    fmt::format(fmt(
+                    fmt::format(
                         "\n-------------------------------------"
                         "\nRESPONSE"
                         "\n-------------------------------------"
@@ -1460,7 +1459,7 @@ namespace kite
                         "\nCookie         : {}"
                         "\nContent        : {}"
                         "\nError msg     : {}"
-                        "\n-------------------------------------\n"),
+                        "\n-------------------------------------\n",
                         resp.status_code,
                         int(resp.error.code),
                         to_string(headerBuf),
@@ -1476,7 +1475,7 @@ namespace kite
                                                  int(resp.error.code),resp.error.message));
             }
 
-            CaseInsensitiveStringFind compareCaseInsensitiveString;
+            util::CaseInsensitiveStringFind compareCaseInsensitiveString;
             json json = json::object();
             if (compareCaseInsensitiveString(resp.header["Content-Type"], std::string("application/json")))
             {
