@@ -55,7 +55,7 @@ You must give it a try.
     - CPR : need to [compile and install](https://github.com/whoshuu/cpr#usage).
     - cppKiteConnect : clone git, use the header files present in include.
 ## API usage
-```
+```cpp
 #include <string>
 #include <map>
 #include <vector>
@@ -152,7 +152,7 @@ int main()
 
 # Examples
 
-Check [examples folder](https://github.com/zerodhatech/cppkiteconnect/tree/master/examples) for more examples.
+Check [examples folder](https://github.com/Mastro-Geppetto/cppkiteconnect/tree/master/examples) for more examples.
 
 ## Run unit tests
 
