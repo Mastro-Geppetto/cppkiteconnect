@@ -260,11 +260,11 @@ namespace kite
         /*!
         @brief : Initialize a new Kite Connect client instance.
         @param apiKey            API Key issued to you
+        @param enableDebug       If set to True, will serialise and print requests and responses to stdout.
         @param accessToken       The token obtained after the login flow in exchange for the `RequestToken` . 
                                  Pre-login, this will default to None,but once you have obtained it, you should persist it in a database or session to pass 
                                  to the Kite Connect class initialisation for subsequent requests.
         @param rootUrl           API end point root. Unless you explicitly want to send API requests to a non-default endpoint, this can be ignored.
-        @param enableDebug       If set to True, will serialise and print requests and responses to stdout.
         @param timeoutValInSec   Time in milliseconds for which  the API client will wait for a request to complete before it fails.
         @param proxySetting      To set proxy for http request. Should be an object of cpr::Proxies.
         @param userdefinedHeader Client supplied http header fields.
@@ -272,11 +272,11 @@ namespace kite
         */
         KiteConnect(
             std::string  apiKey,
+            bool enableDebug = false,
             std::string  accessToken="",
             std::string  rootUrl="",
             /*HTTP pool*/
             cpr::Proxies proxySetting = cpr::Proxies(),
-            bool enableDebug = false,
             int timeoutValInSec = 7000,
             cpr::Header  userdefinedHeader = cpr::Header(),
             /*if enabled, you may face problem in certificate validation in libCurl*/
@@ -352,7 +352,7 @@ namespace kite
                           clear session cookies, or initiate a fresh login.
             @param functionPtr : User action to be invoked when session becomes invalid.
         */
-        inline void setSessionExpiryHook(std::function<void(void)> functionPtr = nullptr)
+        inline void SetSessionExpiryHook(std::function<void(void)> functionPtr = nullptr)
         {
             if (nullptr != functionPtr)
                 this->session_expiry_hook = functionPtr;
@@ -389,7 +389,7 @@ namespace kite
           @return User structure with tokens and profile data
                         error: { 'status' : 'error'  }
           */
-        inline json& generateSession(std::string requestToken, std::string appSecret)
+        inline json& GenerateSession(std::string requestToken, std::string appSecret)
         {
             static json result = json({}); // object
             result.clear();
@@ -420,7 +420,7 @@ namespace kite
           @return User structure with tokens and profile data
                         error: { 'status' : 'error'  }
           */
-        inline json& invalidateAccessToken(std::string accessToken="")
+        inline json& InvalidateAccessToken(std::string accessToken="")
         {
             static json result = json({}); // object
             result.clear();
@@ -444,7 +444,7 @@ namespace kite
           @return User structure with token
                         error: { 'status' : 'error'  }
         */
-        inline json& invalidateRefreshToken( std::string refreshToken )
+        inline json& InvalidateRefreshToken( std::string refreshToken )
         {
             static json result = json({}); // object
             result.clear();
@@ -470,7 +470,7 @@ namespace kite
           @return User structure with TokenRenewResponse that contains new AccessToken and RefreshToken.
                         error: { 'status' : 'error'  }
         */
-        inline json& renewAccessToken( std::string refreshToken, std::string appSecret )
+        inline json& RenewAccessToken( std::string refreshToken, std::string appSecret )
         {
             static json result = json({}); // object
             result.clear();
@@ -506,7 +506,7 @@ namespace kite
           @return User structure with User profile
                         error: { 'status' : 'error'  }
         */
-        inline json& getProfile()
+        inline json& GetProfile()
         {
             static json result = json({}); // object
             result.clear();
@@ -527,7 +527,7 @@ namespace kite
           @return User structure with User margin response with both equity and commodity margins.
                         error: { 'status' : 'error'  }
         */
-        inline json& getMargins()
+        inline json& GetMargins()
         {
             static json result = json({}); // object
             result.clear();
@@ -549,7 +549,7 @@ namespace kite
           @return User structure with User margin response with both equity and commodity margins.
                         error: { 'status' : 'error'  }
         */
-        inline json& getMargins(std::string segment)
+        inline json& GetMargins(std::string segment)
         {
             static json result = json({}); // object
             result.clear();
@@ -590,7 +590,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.
                 error: { 'status' : 'error'  }
         */
-        inline json& placeOrder(
+        inline json& PlaceOrder(
             std::string Exchange,
             std::string TradingSymbol,
             std::string TransactionType,
@@ -662,7 +662,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.
                 error: { 'status' : 'error'  }
         */
-        inline json& modifyOrder(
+        inline json& ModifyOrder(
             std::string OrderId,
             std::string ParentOrderId = "",
             std::string Exchange ="",
@@ -729,7 +729,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.
                 error: { 'status' : 'error'  }
         */
-        inline json& modifyOrder(
+        inline json& ModifyOrder(
             std::string OrderId,
             std::string ParentOrderId = "",
             std::string Variety = VARIETY_REGULAR)
@@ -757,7 +757,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.
                 error: { 'status' : 'error'  }
         */
-        inline json& getOrders( )
+        inline json& GetOrders( )
         {
             static json result = json({}); // object
             result.clear();
@@ -779,7 +779,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.
                 error: { 'status' : 'error'  }
         */
-        inline json& getOrderHistory( std::string orderId )
+        inline json& GetOrderHistory( std::string orderId )
         {
             static json result = json({}); // object
             result.clear();
@@ -805,7 +805,7 @@ namespace kite
         @return Json response in the form of nested string dictionary (CSV). List of trades of given order.
                 error: { 'status' : 'error'  }
         */
-        inline json& getOrderTrades( std::string orderId = "" )
+        inline json& GetOrderTrades( std::string orderId = "" )
         {
             static json result = json({}); // object
             result.clear();
@@ -833,7 +833,7 @@ namespace kite
         @return Json response in the form of nested string dictionary. Day and net positions.
                 error: { 'status' : 'error'  }
         */
-        inline json& getPositions( )
+        inline json& GetPositions( )
         {
             static json result = json({}); // object
             result.clear();
@@ -854,7 +854,7 @@ namespace kite
         @return Json response in the form of nested string dictionary. List of holdings.
                 error: { 'status' : 'error'  }
         */
-        inline json& getHoldings( )
+        inline json& GetHoldings( )
         {
             static json result = json({}); // object
             result.clear();
@@ -882,7 +882,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.
                 error: { 'status' : 'error'  }
         */
-        inline json& convertPosition( 
+        inline json& ConvertPosition( 
             std::string exchange,
             std::string tradingSymbol,
             std::string transactionType,
@@ -921,7 +921,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.List of instruments.
                 error: { 'status' : 'error'  }
         */
-        inline json& getInstruments( std::string exchange = "" )
+        inline json& GetInstruments( std::string exchange = "" )
         {
             static json result = json({}); // object
             result.clear();
@@ -952,7 +952,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.All Quote objects with keys as in InstrumentId.
                         error: { 'status' : 'error'  }
         */
-        inline json& getQuote( std::vector<std::string> instrumentId )
+        inline json& GetQuote( std::vector<std::string> instrumentId )
         {
             static json result = json({}); // object
             result.clear();
@@ -979,7 +979,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.All Quote objects with keys as in InstrumentId.
                 error: { 'status' : 'error'  }
         */
-        inline json& getOHLC( std::vector<std::string> instrumentId )
+        inline json& GetOHLC( std::vector<std::string> instrumentId )
         {
             static json result = json({}); // object
             result.clear();
@@ -1007,7 +1007,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
                 error: { 'status' : 'error'  }
         */
-        inline json& getLTP( std::vector<std::string> instrumentId )
+        inline json& GetLTP( std::vector<std::string> instrumentId )
         {
             static json result = json({}); // object
             result.clear();
@@ -1038,7 +1038,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
                 error: { 'status' : 'error'  }
         */
-        inline json& getLTP(
+        inline json& GetLTP(
             std::string instrumentToken,
             std::string fromDate,
             std::string toDate,
@@ -1074,7 +1074,7 @@ namespace kite
         @return Json response in the form of nested string dictionary.InstrumentId as key and LTP as value.
                 error: { 'status' : 'error'  }
         */
-        inline json& getTriggerRange(
+        inline json& GetTriggerRange(
             std::vector<std::string> instrumentId,
             std::string trasactionType
         )

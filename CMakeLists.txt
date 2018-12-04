@@ -203,6 +203,6 @@ add_custom_target(cppkite_headers_for_ide SOURCES ${cppkite_include_SRCS})
 
 # Build example
 if(CPPKITE_BUILD_EXAMPLES)
-    add_subdirectory(example)
+    add_subdirectory(examples)
 endif()
 
